@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOL Enemy Timer</title>
+
+<style>
+body{
+  margin:0;
+  background:#0f172a;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
+}
+
+h1{
+  padding:10px;
+}
+
+.container{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:10px;
+}
+
+.player{
+  background:#1e293b;
+  padding:10px;
+  border-radius:12px;
+}
+
+button{
+  width:100%;
+  margin-top:5px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  font-size:16px;
+  font-weight:bold;
+}
+
+.flash{background:#facc15;color:black;}
+.ignite{background:#ef4444;}
+.tp{background:#3b82f6;}
+.r{background:#22c55e;color:black;}
+.reset{background:#64748b;}
+
+.timer{
+  margin-top:5px;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Enemy Cooldown Timer</h1>
+
+<div class="container" id="players"></div>
+
+<script>
+const playersDiv = document.getElementById("players");
+
+const cooldowns = {
+  flash:300,
+  ignite:180,
+  tp:360,
+  r:120
+};
+
+function createPlayer(i){
+  const div = document.createElement("div");
+  div.className="player";
+  div.innerHTML = `
+    <h3>Enemy ${i}</h3>
+    <button class="flash" onclick="startTimer(this, cooldowns.flash)">Flash</button>
+    <button class="ignite" onclick="startTimer(this, cooldowns.ignite)">Ignite</button>
+    <button class="tp" onclick="startTimer(this, cooldowns.tp)">Teleport</button>
+    <button class="r" onclick="startTimer(this, cooldowns.r)">R</button>
+    <button class="reset" onclick="resetPlayer(this)">Reset</button>
+    <div class="timer"></div>
+  `;
+  playersDiv.appendChild(div);
+}
+
+for(let i=1;i<=5;i++){
+  createPlayer(i);
+}
+
+function startTimer(button, seconds){
+  let timerDiv = button.parentElement.querySelector(".timer");
+  let endTime = Date.now() + seconds*1000;
+
+  let interval = setInterval(()=>{
+    let remaining = Math.floor((endTime - Date.now())/1000);
+    if(remaining<=0){
+      timerDiv.innerText = "Ready!";
+      clearInterval(interval);
+    }else{
+      let m = Math.floor(remaining/60);
+      let s = remaining%60;
+      timerDiv.innerText = m+":"+("0"+s).slice(-2);
+    }
+  },1000);
+}
+
+function resetPlayer(button){
+  let timerDiv = button.parentElement.querySelector(".timer");
+  timerDiv.innerText="";
+}
+</script>
+
+</body>
+</html>
