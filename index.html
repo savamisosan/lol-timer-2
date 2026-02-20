@@ -1,114 +1,233 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOL Enemy Timer</title>
+<title>LOL Enemy Timer PRO</title>
+
+<link rel="manifest" href="manifest.json">
 
 <style>
 body{
-  margin:0;
-  background:#0f172a;
-  color:white;
+  background: linear-gradient(135deg,#0f172a,#020617);
   font-family:sans-serif;
-  text-align:center;
+  color:white;
+  margin:0;
+  padding:10px;
 }
 
 h1{
-  padding:10px;
+  text-align:center;
+  margin-bottom:10px;
+  color:#facc15;
+}
+
+.controls{
+  margin-bottom:10px;
+}
+
+input,select{
+  width:100%;
+  padding:6px;
+  margin:4px 0;
+  border-radius:8px;
+  border:none;
 }
 
 .container{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  padding:10px;
+  grid-template-columns:1fr;
+  gap:12px;
 }
 
-.player{
-  background:#1e293b;
-  padding:10px;
-  border-radius:12px;
+.card{
+  background: rgba(30,41,59,0.85);
+  padding:12px;
+  border-radius:14px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+
+.timer{
+  font-size:42px;
+  font-weight:900;
+  text-align:center;
+  margin:8px 0;
+  text-shadow:0 0 8px rgba(255,255,255,0.3);
+}
+
+.ready{
+  color:#22c55e;
+  text-shadow:0 0 12px #22c55e;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  50%{opacity:0.4;}
 }
 
 button{
-  width:100%;
-  margin-top:5px;
-  padding:10px;
+  padding:6px 10px;
+  margin:3px;
   border:none;
   border-radius:8px;
-  font-size:16px;
   font-weight:bold;
+  cursor:pointer;
 }
 
-.flash{background:#facc15;color:black;}
-.ignite{background:#ef4444;}
-.tp{background:#3b82f6;}
-.r{background:#22c55e;color:black;}
-.reset{background:#64748b;}
-
-.timer{
-  margin-top:5px;
-  font-size:14px;
-}
+.start{background:#3b82f6;color:white;}
+.reset{background:#ef4444;color:white;}
+.fav{background:#facc15;color:black;}
 </style>
 </head>
 
 <body>
 
-<h1>Enemy Cooldown Timer</h1>
+<h1>LOL Enemy Timer PRO</h1>
 
-<div class="container" id="players"></div>
+<div class="controls">
+<input type="text" id="search" placeholder="チャンピオン検索">
+<select id="roleFilter">
+<option value="ALL">全ロール</option>
+<option value="TOP">TOP</option>
+<option value="JG">JG</option>
+<option value="MID">MID</option>
+<option value="ADC">ADC</option>
+<option value="SUP">SUP</option>
+</select>
+</div>
+
+<div class="container" id="container"></div>
 
 <script>
-const playersDiv = document.getElementById("players");
+// ===== チャンピオンデータ =====
+const champions = [
+{ name:"アーリ", role:"MID" },{ name:"アカリ", role:"MID" },
+{ name:"アッシュ", role:"ADC" },{ name:"アジール", role:"MID" },
+{ name:"イレリア", role:"TOP" },{ name:"エズリアル", role:"ADC" },
+{ name:"オリアナ", role:"MID" },{ name:"ガレン", role:"TOP" },
+{ name:"カイ＝サ", role:"ADC" },{ name:"カタリナ", role:"MID" },
+{ name:"ジンクス", role:"ADC" },{ name:"シンドラ", role:"MID" },
+{ name:"ゼド", role:"MID" },{ name:"ダリウス", role:"TOP" },
+{ name:"トリスターナ", role:"ADC" },{ name:"ナサス", role:"TOP" },
+{ name:"ノーチラス", role:"SUP" },{ name:"フィオラ", role:"TOP" },
+{ name:"ブラウム", role:"SUP" },{ name:"マルファイト", role:"TOP" },
+{ name:"ヤスオ", role:"MID" },{ name:"ラックス", role:"SUP" },
+{ name:"リヴェン", role:"TOP" },{ name:"レオナ", role:"SUP" }
+];
 
-const cooldowns = {
-  flash:300,
-  ignite:180,
-  tp:360,
-  r:120
+// ===== サモナースペル =====
+const spells = {
+"Flash":300,"Teleport":360,"Ignite":180,
+"Heal":240,"Ghost":210,"Exhaust":210,
+"Barrier":180,"Cleanse":210
 };
 
-function createPlayer(i){
-  const div = document.createElement("div");
-  div.className="player";
-  div.innerHTML = `
-    <h3>Enemy ${i}</h3>
-    <button class="flash" onclick="startTimer(this, cooldowns.flash)">Flash</button>
-    <button class="ignite" onclick="startTimer(this, cooldowns.ignite)">Ignite</button>
-    <button class="tp" onclick="startTimer(this, cooldowns.tp)">Teleport</button>
-    <button class="r" onclick="startTimer(this, cooldowns.r)">R</button>
-    <button class="reset" onclick="resetPlayer(this)">Reset</button>
-    <div class="timer"></div>
+// ===== お気に入り =====
+let favorites = JSON.parse(localStorage.getItem("favChamps")) || [];
+
+function toggleFavorite(name){
+  if(favorites.includes(name)){
+    favorites = favorites.filter(c=>c!==name);
+  }else{
+    favorites.push(name);
+  }
+  localStorage.setItem("favChamps",JSON.stringify(favorites));
+  renderAll();
+}
+
+// ===== フィルター =====
+function getFilteredChamps(){
+  const search = document.getElementById("search").value;
+  const role = document.getElementById("roleFilter").value;
+
+  let list = champions.filter(c=>{
+    return (role==="ALL"||c.role===role)
+      && c.name.includes(search);
+  });
+
+  const favList = list.filter(c=>favorites.includes(c.name))
+      .sort((a,b)=>a.name.localeCompare(b.name,"ja"));
+  const normalList = list.filter(c=>!favorites.includes(c.name))
+      .sort((a,b)=>a.name.localeCompare(b.name,"ja"));
+  return [...favList,...normalList];
+}
+
+// ===== カード生成 =====
+function createCard(id){
+  const champOptions = getFilteredChamps()
+    .map(c=>`<option>${c.name}</option>`).join("");
+
+  return `
+  <div class="card">
+    <select id="champ${id}">${champOptions}</select>
+    <button class="fav" onclick="favCurrent(${id})">⭐</button>
+
+    <select id="spell${id}">
+      ${Object.keys(spells).map(s=>`<option value="${spells[s]}">${s}</option>`).join("")}
+    </select>
+
+    <div class="timer" id="timer${id}">READY</div>
+
+    <button class="start" onclick="startTimer(${id})">START</button>
+    <button class="reset" onclick="resetTimer(${id})">RESET</button>
+  </div>
   `;
-  playersDiv.appendChild(div);
 }
 
-for(let i=1;i<=5;i++){
-  createPlayer(i);
+function renderAll(){
+  const container=document.getElementById("container");
+  container.innerHTML="";
+  for(let i=1;i<=5;i++){
+    container.innerHTML+=createCard(i);
+  }
 }
 
-function startTimer(button, seconds){
-  let timerDiv = button.parentElement.querySelector(".timer");
-  let endTime = Date.now() + seconds*1000;
+function favCurrent(id){
+  const champ=document.getElementById("champ"+id).value;
+  toggleFavorite(champ);
+}
 
-  let interval = setInterval(()=>{
-    let remaining = Math.floor((endTime - Date.now())/1000);
-    if(remaining<=0){
-      timerDiv.innerText = "Ready!";
-      clearInterval(interval);
-    }else{
-      let m = Math.floor(remaining/60);
-      let s = remaining%60;
-      timerDiv.innerText = m+":"+("0"+s).slice(-2);
+// ===== タイマー =====
+const timers={};
+
+function startTimer(id){
+  let duration=parseInt(document.getElementById("spell"+id).value);
+  let display=document.getElementById("timer"+id);
+  let time=duration;
+
+  clearInterval(timers[id]);
+
+  timers[id]=setInterval(()=>{
+    if(time<=0){
+      clearInterval(timers[id]);
+      display.innerHTML="READY";
+      display.classList.add("ready");
+      return;
     }
+    let m=Math.floor(time/60);
+    let s=time%60;
+    display.innerHTML=(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+    display.classList.remove("ready");
+    time--;
   },1000);
 }
 
-function resetPlayer(button){
-  let timerDiv = button.parentElement.querySelector(".timer");
-  timerDiv.innerText="";
+function resetTimer(id){
+  clearInterval(timers[id]);
+  let display=document.getElementById("timer"+id);
+  display.innerHTML="READY";
+  display.classList.remove("ready");
+}
+
+// 検索・フィルターイベント
+document.getElementById("search").addEventListener("input",renderAll);
+document.getElementById("roleFilter").addEventListener("change",renderAll);
+
+renderAll();
+
+// ===== PWA登録 =====
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
 }
 </script>
 
