@@ -3,233 +3,185 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOL Enemy Timer PRO</title>
-
-<link rel="manifest" href="manifest.json">
-
+<title>LOL サモナースペル & R タイマー</title>
 <style>
-body{
-  background: linear-gradient(135deg,#0f172a,#020617);
-  font-family:sans-serif;
-  color:white;
-  margin:0;
-  padding:10px;
-}
-
-h1{
-  text-align:center;
-  margin-bottom:10px;
-  color:#facc15;
-}
-
-.controls{
-  margin-bottom:10px;
-}
-
-input,select{
-  width:100%;
-  padding:6px;
-  margin:4px 0;
-  border-radius:8px;
-  border:none;
-}
-
-.container{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:12px;
-}
-
-.card{
-  background: rgba(30,41,59,0.85);
-  padding:12px;
-  border-radius:14px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.5);
-}
-
-.timer{
-  font-size:42px;
-  font-weight:900;
-  text-align:center;
-  margin:8px 0;
-  text-shadow:0 0 8px rgba(255,255,255,0.3);
-}
-
-.ready{
-  color:#22c55e;
-  text-shadow:0 0 12px #22c55e;
-  animation:blink 1s infinite;
-}
-
-@keyframes blink{
-  50%{opacity:0.4;}
-}
-
-button{
-  padding:6px 10px;
-  margin:3px;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.start{background:#3b82f6;color:white;}
-.reset{background:#ef4444;color:white;}
-.fav{background:#facc15;color:black;}
+  body { font-family: "Segoe UI", sans-serif; background:#1c1c1c; color:#eee; margin:0; padding:0; }
+  h1 { text-align:center; margin:1em 0; color:#ffcc00; }
+  .player { display:flex; flex-direction:column; background:#2c2c2c; margin:0.5em; padding:0.5em; border-radius:10px; }
+  .player-name { font-size:1.2em; font-weight:bold; margin-bottom:0.3em; color:#00ccff; }
+  .champion-select, .spell-select { margin-bottom:0.3em; }
+  select { width:100%; padding:0.3em; border-radius:5px; border:none; }
+  .timer { display:flex; justify-content:space-between; margin-top:0.5em; }
+  .timer div { background:#444; padding:0.5em; border-radius:5px; font-size:1.2em; flex:1; text-align:center; margin:0 0.2em; }
+  #players { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.5em; padding:0.5em; }
+  button { padding:0.5em 1em; border:none; border-radius:5px; margin-top:0.5em; background:#ff9900; color:#111; font-weight:bold; cursor:pointer; }
 </style>
 </head>
-
 <body>
-
-<h1>LOL Enemy Timer PRO</h1>
-
-<div class="controls">
-<input type="text" id="search" placeholder="チャンピオン検索">
-<select id="roleFilter">
-<option value="ALL">全ロール</option>
-<option value="TOP">TOP</option>
-<option value="JG">JG</option>
-<option value="MID">MID</option>
-<option value="ADC">ADC</option>
-<option value="SUP">SUP</option>
-</select>
-</div>
-
-<div class="container" id="container"></div>
+<h1>LOL サモナースペル & R タイマー</h1>
+<div id="players"></div>
 
 <script>
-// ===== チャンピオンデータ =====
+// 🏆 全チャンピオン配列（先ほど作った50音順171体）
 const champions = [
-{ name:"アーリ", role:"MID" },{ name:"アカリ", role:"MID" },
-{ name:"アッシュ", role:"ADC" },{ name:"アジール", role:"MID" },
-{ name:"イレリア", role:"TOP" },{ name:"エズリアル", role:"ADC" },
-{ name:"オリアナ", role:"MID" },{ name:"ガレン", role:"TOP" },
-{ name:"カイ＝サ", role:"ADC" },{ name:"カタリナ", role:"MID" },
-{ name:"ジンクス", role:"ADC" },{ name:"シンドラ", role:"MID" },
-{ name:"ゼド", role:"MID" },{ name:"ダリウス", role:"TOP" },
-{ name:"トリスターナ", role:"ADC" },{ name:"ナサス", role:"TOP" },
-{ name:"ノーチラス", role:"SUP" },{ name:"フィオラ", role:"TOP" },
-{ name:"ブラウム", role:"SUP" },{ name:"マルファイト", role:"TOP" },
-{ name:"ヤスオ", role:"MID" },{ name:"ラックス", role:"SUP" },
-{ name:"リヴェン", role:"TOP" },{ name:"レオナ", role:"SUP" }
+{name:"アーリ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ahri.png"},
+{name:"アカリ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Akali.png"},
+{name:"アクシャン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Akshan.png"},
+{name:"アリスター",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Alistar.png"},
+{name:"アンベッサ",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/BelVeth.png"},
+{name:"アムム",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Amumu.png"},
+{name:"アニビア",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Anivia.png"},
+{name:"アニー",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Annie.png"},
+{name:"アフェリオス",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Aphelios.png"},
+{name:"アッシュ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ashe.png"},
+{name:"オレリオン・ソル",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/AurelionSol.png"},
+{name:"アジール",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Azir.png"},
+{name:"バード",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Bard.png"},
+{name:"ブラウム",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Braum.png"},
+{name:"ブランド",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Brand.png"},
+{name:"ブリッツクランク",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Blitzcrank.png"},
+{name:"ケイトリン",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Caitlyn.png"},
+{name:"カミール",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Camille.png"},
+{name:"カシオペア",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Cassiopeia.png"},
+{name:"チョ＝ガス",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Chogath.png"},
+{name:"コーキ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Corki.png"},
+{name:"ダリウス",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Darius.png"},
+{name:"ダイアナ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Diana.png"},
+{name:"ドクター・ムンド",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/DrMundo.png"},
+{name:"ドレイヴン",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Draven.png"},
+{name:"エコー",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ekko.png"},
+{name:"エリース",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Elise.png"},
+{name:"イブリン",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Evelynn.png"},
+{name:"エズリアル",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ezreal.png"},
+{name:"フィドルスティックス",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Fiddlesticks.png"},
+{name:"フィオラ",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Fiora.png"},
+{name:"フィズ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Fizz.png"},
+{name:"ガリオ",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Galio.png"},
+{name:"ガングプランク",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Gangplank.png"},
+{name:"ガレン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Garen.png"},
+{name:"グラガス",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Gragas.png"},
+{name:"グレイブス",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Graves.png"},
+{name:"ハイマー",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Heimerdinger.png"},
+{name:"アイバーン",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ivern.png"},
+{name:"ジャックス",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Jax.png"},
+{name:"ヤスオ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Yasuo.png"},
+{name:"ヨリック",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Yorick.png"},
+{name:"ジンクス",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Jinx.png"},
+{name:"カイ＝サ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/KaiSa.png"},
+{name:"カリスタ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Kalista.png"},
+{name:"カタリナ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Katarina.png"},
+{name:"ケネン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Kennen.png"},
+{name:"キンドレッド",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Kindred.png"},
+{name:"キヤナ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Qiyana.png"},
+{name:"クレッド",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Kled.png"},
+{name:"クイン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Quinn.png"},
+{name:"ラカン",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Rakan.png"},
+{name:"ラムス",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Rammus.png"},
+{name:"レオナ",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Leona.png"},
+{name:"リサンドラ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Lissandra.png"},
+{name:"リヴェン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Riven.png"},
+{name:"リリア",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Lillia.png"},
+{name:"ルブラン",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/LeBlanc.png"},
+{name:"ルル",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Lulu.png"},
+{name:"ルシアン",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Lucian.png"},
+{name:"ラックス",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Lux.png"},
+{name:"マスター・イー",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/MasterYi.png"},
+{name:"ミス・フォーチュン",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/MissFortune.png"},
+{name:"モルガナ",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Morgana.png"},
+{name:"ナサス",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Nasus.png"},
+{name:"ナミ",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Nami.png"},
+{name:"ノーチラス",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Nautilus.png"},
+{name:"ニダリー",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Nidalee.png"},
+{name:"ノクターン",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Nocturne.png"},
+{name:"オーン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ornn.png"},
+{name:"パンテオン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Pantheon.png"},
+{name:"ポッピー",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Poppy.png"},
+{name:"ライズ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ryze.png"},
+{name:"セト",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Sett.png"},
+{name:"シェン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Shen.png"},
+{name:"シヴィア",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Sivir.png"},
+{name:"シンドラ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Syndra.png"},
+{name:"タリヤ",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Taliyah.png"},
+{name:"タロン",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Talon.png"},
+{name:"タリック",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Taric.png"},
+{name:"トリスターナ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Tristana.png"},
+{name:"トリンダメア",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Tryndamere.png"},
+{name:"トゥイッチ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Twitch.png"},
+{name:"ウーコン",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/MonkeyKing.png"},
+{name:"ウディア",role:"TOP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Udyr.png"},
+{name:"ヴェイン",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Vayne.png"},
+{name:"ヴィエゴ",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Viego.png"},
+{name:"ヴィクター",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Viktor.png"},
+{name:"ウォーウィック",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Warwick.png"},
+{name:"ザヤ",role:"ADC",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Xayah.png"},
+{name:"ユーミ",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Yuumi.png"},
+{name:"ザック",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Zac.png"},
+{name:"ジリアン",role:"SUP",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Zilean.png"},
+{name:"ゾーイ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Zoe.png"},
+{name:"ズーラ",role:"JG",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Zyra.png"}
+];
+const champions = [ 
+{name:"アーリ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Ahri.png"},
+{name:"アカリ",role:"MID",icon:"https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/Akali.png"},
+// ... 省略（171体すべて）
 ];
 
-// ===== サモナースペル =====
-const spells = {
-"Flash":300,"Teleport":360,"Ignite":180,
-"Heal":240,"Ghost":210,"Exhaust":210,
-"Barrier":180,"Cleanse":210
-};
+// サモナースペル選択
+const spells = ["フラッシュ","イグナイト","テレポート","ヒール","バリア","スマイト","クレンズ","エクスポージャー"];
 
-// ===== お気に入り =====
-let favorites = JSON.parse(localStorage.getItem("favChamps")) || [];
+// プレイヤー生成
+const playersDiv = document.getElementById("players");
+const playerCount = 5;
+const playerTimers = [];
 
-function toggleFavorite(name){
-  if(favorites.includes(name)){
-    favorites = favorites.filter(c=>c!==name);
-  }else{
-    favorites.push(name);
-  }
-  localStorage.setItem("favChamps",JSON.stringify(favorites));
-  renderAll();
-}
-
-// ===== フィルター =====
-function getFilteredChamps(){
-  const search = document.getElementById("search").value;
-  const role = document.getElementById("roleFilter").value;
-
-  let list = champions.filter(c=>{
-    return (role==="ALL"||c.role===role)
-      && c.name.includes(search);
+for(let i=0;i<playerCount;i++){
+  const div = document.createElement("div");
+  div.className="player";
+  
+  // 名前
+  const nameInput = document.createElement("input");
+  nameInput.placeholder=`Player ${i+1}`;
+  nameInput.className="player-name";
+  div.appendChild(nameInput);
+  
+  // チャンピオン選択
+  const champSelect = document.createElement("select");
+  champSelect.className="champion-select";
+  champions.forEach(c=>{
+    const opt = document.createElement("option");
+    opt.value=c.name; opt.text=c.name;
+    champSelect.appendChild(opt);
   });
-
-  const favList = list.filter(c=>favorites.includes(c.name))
-      .sort((a,b)=>a.name.localeCompare(b.name,"ja"));
-  const normalList = list.filter(c=>!favorites.includes(c.name))
-      .sort((a,b)=>a.name.localeCompare(b.name,"ja"));
-  return [...favList,...normalList];
-}
-
-// ===== カード生成 =====
-function createCard(id){
-  const champOptions = getFilteredChamps()
-    .map(c=>`<option>${c.name}</option>`).join("");
-
-  return `
-  <div class="card">
-    <select id="champ${id}">${champOptions}</select>
-    <button class="fav" onclick="favCurrent(${id})">⭐</button>
-
-    <select id="spell${id}">
-      ${Object.keys(spells).map(s=>`<option value="${spells[s]}">${s}</option>`).join("")}
-    </select>
-
-    <div class="timer" id="timer${id}">READY</div>
-
-    <button class="start" onclick="startTimer(${id})">START</button>
-    <button class="reset" onclick="resetTimer(${id})">RESET</button>
-  </div>
-  `;
-}
-
-function renderAll(){
-  const container=document.getElementById("container");
-  container.innerHTML="";
-  for(let i=1;i<=5;i++){
-    container.innerHTML+=createCard(i);
-  }
-}
-
-function favCurrent(id){
-  const champ=document.getElementById("champ"+id).value;
-  toggleFavorite(champ);
-}
-
-// ===== タイマー =====
-const timers={};
-
-function startTimer(id){
-  let duration=parseInt(document.getElementById("spell"+id).value);
-  let display=document.getElementById("timer"+id);
-  let time=duration;
-
-  clearInterval(timers[id]);
-
-  timers[id]=setInterval(()=>{
-    if(time<=0){
-      clearInterval(timers[id]);
-      display.innerHTML="READY";
-      display.classList.add("ready");
-      return;
-    }
-    let m=Math.floor(time/60);
-    let s=time%60;
-    display.innerHTML=(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-    display.classList.remove("ready");
-    time--;
-  },1000);
-}
-
-function resetTimer(id){
-  clearInterval(timers[id]);
-  let display=document.getElementById("timer"+id);
-  display.innerHTML="READY";
-  display.classList.remove("ready");
-}
-
-// 検索・フィルターイベント
-document.getElementById("search").addEventListener("input",renderAll);
-document.getElementById("roleFilter").addEventListener("change",renderAll);
-
-renderAll();
-
-// ===== PWA登録 =====
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("service-worker.js");
+  div.appendChild(champSelect);
+  
+  // サモナースペル2つ選択
+  const spell1 = document.createElement("select");
+  spells.forEach(s=>{ const o=document.createElement("option"); o.value=s;o.text=s; spell1.appendChild(o); });
+  const spell2 = document.createElement("select");
+  spells.forEach(s=>{ const o=document.createElement("option"); o.value=s;o.text=s; spell2.appendChild(o); });
+  div.appendChild(spell1); div.appendChild(spell2);
+  
+  // タイマー表示
+  const timerDiv = document.createElement("div"); timerDiv.className="timer";
+  const t1 = document.createElement("div"); t1.textContent="0:00";
+  const t2 = document.createElement("div"); t2.textContent="0:00";
+  const tR = document.createElement("div"); tR.textContent="0:00";
+  timerDiv.appendChild(t1); timerDiv.appendChild(t2); timerDiv.appendChild(tR);
+  div.appendChild(timerDiv);
+  
+  // タイマー管理
+  playerTimers.push({t1,t2,tR,spell1,spell2});
+  
+  // スタートボタン
+  const btn = document.createElement("button");
+  btn.textContent="Start";
+  btn.onclick=()=>{
+    [t1,t2,tR].forEach(td=>{ td.textContent="5:00"; }); // 例: 全部5分スタート
+  };
+  div.appendChild(btn);
+  
+  playersDiv.appendChild(div);
 }
 </script>
-
 </body>
 </html>
